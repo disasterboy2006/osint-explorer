@@ -1,49 +1,64 @@
 ```python
 import requests
+from bs4 import BeautifulSoup
 
 def fetch_ip_info(ip_address):
     """
-    Fetches geolocation information for the given IP address using an external API.
+    Fetches IP address information from the 'ipinfo.io' API.
     
     Args:
-        ip_address (str): The IP address to lookup.
+        ip_address (str): The IP address to look up.
         
     Returns:
-        dict: A dictionary containing geolocation data or an error message.
+        dict: A dictionary containing the IP information.
     """
-    try:
-        # API endpoint for IP geolocation
-        api_url = f"https://ipinfo.io/{ip_address}/json"
-        response = requests.get(api_url)
+    url = f"https://ipinfo.io/{ip_address}/json"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error fetching data for IP: {ip_address}")
+        return None
+
+def scrape_domain_info(domain):
+    """
+    Scrapes the domain information from the 'whois.domaintools.com' website.
+    
+    Args:
+        domain (str): The domain to look up.
         
-        # Check if the request was successful
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return {"error": "Unable to fetch data, check the IP address or try again."}
-    except Exception as e:
-        return {"error": str(e)}
+    Returns:
+        str: A string containing the domain information.
+    """
+    url = f"https://whois.domaintools.com/{domain}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # Extracting WHOIS information from the page
+        whois_info = soup.find("div", class_="whois-info")
+        return whois_info.get_text(strip=True) if whois_info else "No WHOIS info found."
+    else:
+        print(f"Error fetching data for domain: {domain}")
+        return None
 
 def main():
-    """
-    Main function to execute the OSINT script.
-    """
-    # Sample IP addresses for testing
-    ip_addresses = ["8.8.8.8", "192.0.2.1", "invalid_ip"]
+    # Example IP address and domain
+    ip_address = "8.8.8.8"
+    domain = "example.com"
     
-    for ip in ip_addresses:
-        print(f"Fetching information for IP: {ip}")
-        ip_info = fetch_ip_info(ip)
-        
-        # Print the output in a formatted way
-        if "error" in ip_info:
-            print(f"Error: {ip_info['error']}")
-        else:
-            print(f"IP: {ip_info.get('ip')}")
-            print(f"Location: {ip_info.get('city')}, {ip_info.get('region')}, {ip_info.get('country')}")
-            print(f"Coordinates: {ip_info.get('loc')}")
-            print(f"Organization: {ip_info.get('org')}")
-            print("-" * 40)
+    # Fetch and display IP information
+    ip_info = fetch_ip_info(ip_address)
+    if ip_info:
+        print("IP Information:")
+        print(ip_info)
+    
+    # Scrape and display domain information
+    domain_info = scrape_domain_info(domain)
+    if domain_info:
+        print("\nDomain Information:")
+        print(domain_info)
 
 if __name__ == "__main__":
     main()
